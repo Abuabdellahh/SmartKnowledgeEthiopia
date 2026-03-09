@@ -88,16 +88,68 @@ export function UploadBookModal({ open, onOpenChange, onUpload }: UploadBookModa
 
   const handleSubmit = async () => {
     setIsUploading(true)
-    // Simulate upload
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    onUpload?.(formData)
-    setIsUploading(false)
-    onOpenChange(false)
-    // Reset form
-    setStep(1)
-    setFormData({ title: "", author: "", description: "", category: "", language: "en" })
-    setCoverPreview(null)
-    setPdfName(null)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Not authenticated")
+
+      let coverUrl = null
+      let fileUrl = null
+
+      // Upload cover image
+      if (formData.coverFile) {
+        const coverPath = `${user.id}/${Date.now()}-${formData.coverFile.name}`
+        const { error: coverError } = await supabase.storage
+          .from('book-covers')
+          .upload(coverPath, formData.coverFile)
+        if (coverError) throw coverError
+        const { data: { publicUrl } } = supabase.storage
+          .from('book-covers')
+          .getPublicUrl(coverPath)
+        coverUrl = publicUrl
+      }
+
+      // Upload PDF
+      if (formData.pdfFile) {
+        const filePath = `${user.id}/${Date.now()}-${formData.pdfFile.name}`
+        const { error: fileError } = await supabase.storage
+          .from('book-files')
+          .upload(filePath, formData.pdfFile)
+        if (fileError) throw fileError
+        const { data: { publicUrl } } = supabase.storage
+          .from('book-files')
+          .getPublicUrl(filePath)
+        fileUrl = publicUrl
+      }
+
+      // Create book record
+      const slug = `${formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`
+      const { error: bookError } = await supabase.from('books').insert({
+        user_id: user.id,
+        title: formData.title,
+        slug,
+        author: formData.author,
+        description: formData.description,
+        category_id: formData.category,
+        language: formData.language,
+        cover_url: coverUrl,
+        file_url: fileUrl,
+        is_public: true
+      })
+
+      if (bookError) throw bookError
+
+      onUpload?.(formData)
+      onOpenChange(false)
+      setStep(1)
+      setFormData({ title: "", author: "", description: "", category: "", language: "en" })
+      setCoverPreview(null)
+      setPdfName(null)
+    } catch (error) {
+      console.error('Upload error:', error)
+      alert(error instanceof Error ? error.message : 'Upload failed')
+    } finally {
+      setIsUploading(false)
+    }
   }
 
   const isStep1Valid = formData.title && formData.author && formData.category

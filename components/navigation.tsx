@@ -21,9 +21,10 @@ import { supabase } from "@/lib/supabaseClient"
 
 const navItems = [
   { href: "/", label: "Home", icon: BookOpen },
-  { href: "/books", label: "Books", icon: Search },
+  { href: "/library", label: "Library", icon: BookOpen, requireAuth: true },
   { href: "/chat", label: "AI Chat", icon: MessageSquare },
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, requireAuth: true },
+  { href: "/admin", label: "Admin", icon: LayoutDashboard, adminOnly: true },
 ]
 
 export function Navigation() {
@@ -32,26 +33,20 @@ export function Navigation() {
   const { theme, setTheme } = useTheme()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [userRole, setUserRole] = useState<string | null>(null)
 
   useEffect(() => {
     const loadUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         setUserEmail(null)
-        setIsAdmin(false)
+        setUserRole(null)
         return
       }
 
       setUserEmail(user.email ?? null)
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle()
-
-      setIsAdmin(profile?.role === "admin")
+      const role = (user.user_metadata as any)?.role || "student"
+      setUserRole(role)
     }
 
     loadUser()
@@ -68,7 +63,7 @@ export function Navigation() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     setUserEmail(null)
-    setIsAdmin(false)
+    setUserRole(null)
     router.push("/")
   }
 
@@ -90,7 +85,8 @@ export function Navigation() {
         <div className="hidden md:flex items-center gap-1">
           {navItems.map((item) => {
             const Icon = item.icon
-            if (item.href === "/admin" && !isAdmin) return null
+            if (item.adminOnly && userRole !== "admin") return null
+            if (item.requireAuth && !userEmail) return null
             const isActive = pathname === item.href || 
               (item.href !== "/" && pathname.startsWith(item.href))
             
@@ -177,7 +173,8 @@ export function Navigation() {
           <div className="space-y-1 px-4 py-3">
             {navItems.map((item) => {
               const Icon = item.icon
-              if (item.href === "/admin" && !isAdmin) return null
+              if (item.adminOnly && userRole !== "admin") return null
+              if (item.requireAuth && !userEmail) return null
               const isActive = pathname === item.href || 
                 (item.href !== "/" && pathname.startsWith(item.href))
               

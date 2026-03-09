@@ -134,7 +134,7 @@ export default async function HomePage() {
                 <Button asChild size="lg" className="gap-2">
                   <Link href="/books">
                     <BookOpen className="h-5 w-5" />
-                    Browse Library
+                    Explore Platform
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="gap-2">
@@ -262,7 +262,7 @@ export default async function HomePage() {
                 </p>
               </div>
               <Button asChild variant="ghost" className="hidden sm:flex gap-2">
-                <Link href="/books">
+                <Link href="/library">
                   View All
                   <ArrowRight className="h-4 w-4" />
                 </Link>
@@ -275,7 +275,7 @@ export default async function HomePage() {
             </div>
             <div className="mt-6 text-center sm:hidden">
               <Button asChild variant="outline" className="gap-2">
-                <Link href="/books">
+                <Link href="/library">
                   View All Books
                   <ArrowRight className="h-4 w-4" />
                 </Link>
@@ -303,7 +303,7 @@ export default async function HomePage() {
                   variant="secondary"
                   className="gap-2"
                 >
-                  <Link href="/books">
+                  <Link href="/signup">
                     <Users className="h-5 w-5" />
                     Create Free Account
                   </Link>

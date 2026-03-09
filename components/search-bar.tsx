@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Search, Sparkles, X, ArrowRight, Clock, TrendingUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -32,6 +33,7 @@ export function SearchBar({
   size = "default",
   showSuggestions = true
 }: SearchBarProps) {
+  const router = useRouter()
   const [query, setQuery] = useState("")
   const [isFocused, setIsFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -39,14 +41,23 @@ export function SearchBar({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (query.trim()) {
-      onSearch?.(query)
+      if (onSearch) {
+        onSearch(query)
+      } else {
+        // Default: redirect to AI chat with query
+        router.push(`/chat?q=${encodeURIComponent(query)}`)
+      }
     }
   }
 
   const handleSuggestionClick = (suggestion: string) => {
     setQuery(suggestion)
-    onSearch?.(suggestion)
     setIsFocused(false)
+    if (onSearch) {
+      onSearch(suggestion)
+    } else {
+      router.push(`/chat?q=${encodeURIComponent(suggestion)}`)
+    }
   }
 
   return (

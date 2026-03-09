@@ -19,6 +19,7 @@ const footerLinks = {
     { label: "Team", href: "/team" },
     { label: "Contact", href: "/contact" },
     { label: "Privacy Policy", href: "/privacy" },
+    { label: "Terms of Service", href: "/terms" },
   ],
 }
 
@@ -42,15 +43,15 @@ export function Footer() {
               Empowering Ethiopian students and researchers with AI-powered access to knowledge and learning resources.
             </p>
             <div className="mt-4 flex gap-4">
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="https://twitter.com/SKEthiopia" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
                 <Twitter className="h-5 w-5" />
                 <span className="sr-only">Twitter</span>
               </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="https://github.com/SKEthiopia" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
                 <Github className="h-5 w-5" />
                 <span className="sr-only">GitHub</span>
               </a>
-              <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="mailto:info@smartknowledge.et" className="text-muted-foreground hover:text-foreground transition-colors">
                 <Mail className="h-5 w-5" />
                 <span className="sr-only">Email</span>
               </a>
@@ -112,7 +113,7 @@ export function Footer() {
         <div className="mt-12 border-t border-border pt-8">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <p className="text-sm text-muted-foreground">
-              2024 Smart Knowledge Ethiopia. All rights reserved.
+              © 2024 Smart Knowledge Ethiopia. All rights reserved.
             </p>
             <p className="text-sm text-muted-foreground">
               Made with care for Ethiopian learners

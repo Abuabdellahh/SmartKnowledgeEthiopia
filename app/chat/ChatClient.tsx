@@ -36,14 +36,6 @@ import { sampleChatMessages, type Book, type ChatMessage } from "@/lib/mock-data
 import { supabase } from "@/lib/supabaseClient"
 import { mapDbBook } from "@/lib/dataMappers"
 
-const suggestedQuestions = [
-  "What are the main themes of Ethiopian history?",
-  "Explain the Aksumite Empire and its significance",
-  "How has agriculture evolved in Ethiopia?",
-  "What are the key principles of Ethiopian constitutional law?",
-  "Summarize recent developments in Ethiopian education",
-]
-
 export function ChatClient() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -51,6 +43,14 @@ export function ChatClient() {
   const [books, setBooks] = useState<Book[]>([])
   const [role, setRole] = useState<string | null>(null)
   const [checkingAccess, setCheckingAccess] = useState(true)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [input, setInput] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [contextBook, setContextBook] = useState<string | null>(bookId)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -79,18 +79,27 @@ export function ChatClient() {
     init()
   }, [router])
 
-  const selectedBook = bookId ? books.find((b) => b.id === bookId) : null
+  const selectedBook = contextBook ? books.find((b) => b.id === contextBook) : null
 
-  const [messages, setMessages] = useState<ChatMessage[]>(
-    selectedBook ? [] : sampleChatMessages
-  )
-  const [input, setInput] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [contextBook, setContextBook] = useState<string | null>(bookId)
-  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const welcomeMessage = selectedBook
+    ? `Ask me anything about "${selectedBook.title}"`
+    : "Ask me anything about Ethiopian history, culture, science, or any topic from our knowledge base."
 
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const suggestedQuestions = selectedBook
+    ? [
+        `What is "${selectedBook.title}" about?`,
+        `Summarize the key points of this book`,
+        `What are the main topics covered?`,
+        `Explain the most important concepts`,
+        `Give me 5 key takeaways from this book`,
+      ]
+    : [
+        "What are the main themes of Ethiopian history?",
+        "Explain the Aksumite Empire and its significance",
+        "How has agriculture evolved in Ethiopia?",
+        "What are the key principles of Ethiopian constitutional law?",
+        "Summarize recent developments in Ethiopian education",
+      ]
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -114,6 +123,12 @@ export function ChatClient() {
     e.preventDefault()
     if (!input.trim() || isLoading || !aiAllowed) return
 
+    const MAX_INPUT_LENGTH = 2000
+    if (input.length > MAX_INPUT_LENGTH) {
+      alert(`Message too long. Maximum ${MAX_INPUT_LENGTH} characters.`)
+      return
+    }
+
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
@@ -123,25 +138,43 @@ export function ChatClient() {
     }
 
     setMessages((prev) => [...prev, userMessage])
+    const userInput = input.trim()
     setInput("")
     setIsLoading(true)
 
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error("Not authenticated")
 
-    const contextInfo = contextBook
-      ? books.find((b) => b.id === contextBook)
-      : null
+      const { data, error } = await supabase.functions.invoke("quick-handler", {
+        body: { tool: "chat", pageContent: userInput, bookId: contextBook },
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      })
 
-    const aiResponse: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: generateMockResponse(input, contextInfo?.title),
-      bookId: contextBook || undefined,
-      timestamp: new Date().toISOString(),
+      if (error) throw error
+
+      const aiResponse: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data?.output || "Sorry, I couldn't generate a response.",
+        bookId: contextBook || undefined,
+        timestamp: new Date().toISOString(),
+      }
+
+      setMessages((prev) => [...prev, aiResponse])
+    } catch (error) {
+      console.error('AI Chat Error:', error)
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: `Error: ${error instanceof Error ? error.message : 'Failed to get AI response'}. Make sure GROQ_API_KEY is configured in Supabase Edge Functions.`,
+        bookId: contextBook || undefined,
+        timestamp: new Date().toISOString(),
+      }
+      setMessages((prev) => [...prev, errorMessage])
+    } finally {
+      setIsLoading(false)
     }
-
-    setMessages((prev) => [...prev, aiResponse])
-    setIsLoading(false)
   }
 
   const handleSuggestedQuestion = (question: string) => {
@@ -249,8 +282,7 @@ export function ChatClient() {
                   Welcome to SKE AI Assistant
                 </h2>
                 <p className="mt-2 text-center text-muted-foreground max-w-md">
-                  Ask me anything about Ethiopian history, culture, science, or any
-                  topic from our knowledge base.
+                  {welcomeMessage}
                 </p>
 
                 <div className="mt-8 w-full max-w-lg">

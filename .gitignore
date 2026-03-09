@@ -17,6 +17,8 @@
 .env
 .env.local
 .env.*.local
+ske.env
+deploy-all-functions.sh
 
 # Debug
 npm-debug.log*
